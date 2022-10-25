@@ -12,4 +12,4 @@ poderá ser também negativo. Prever a impressão destes casos.
 -O programa deverá solicitar os 2 números e a operação, e devolver o
 resultado.
 - A interface com o usuário deverá ser a mais confortável possível.
-- Comentários são obrigatórios 
+- Comentários são obrigatórios.
