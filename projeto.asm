@@ -42,7 +42,7 @@ int 21H     ; chama o SO para realizar a funcao
 mov AH,01   ; funçao de leitura
 int 21H     ; chama o SO para realizar a funcao
 
- cmp al,"+" 
+ cmp al,"+"    ;
  JE  verifica  ; jz: salto se igual a zero, se a entrada não for as possíveis operações dará erro 
  cmp al, "-"
  JE verifica
@@ -53,7 +53,6 @@ int 21H     ; chama o SO para realizar a funcao
 
 JMP ERRO
  
-
 
 
 verifica:
@@ -80,8 +79,8 @@ jmp FIM
 
 
 erro:
-mov AH,09
-lea dx,errado 
+mov AH,09  ; imprime string 
+lea dx,errado ; coloca o conteudo da mensagem numero2 no registrador dx 
 int 21h
 jmp inicializa  ; volta para o inicio 
 
@@ -102,43 +101,6 @@ pula PROC
 pula ENDP
 
 
-end main
- 
 
 
-
-verifica:
-mov AH,09      ; imprime a msg1
-lea DX,numero1 ; coloca o conteudo do numero1 no registrador dx 
-int 21H        ; chama o SO para realizar a funcao
-
-mov AH,01   ; funçao de leitura
-int 21H     ; chama o SO para realizar a funcao
-mov BH,AL   ; coloca o conteudo de AL em BH 
-sub BH,30h  ; subtrai 30h do codigo ascii
-
-
-mov AH,09      ; imprime a msg1
-lea DX,numero2 ; coloca o conteudo do numero2 no registrador dx 
-int 21H        ; chama o SO para realizar a funcao
-
-mov AH,01   ; funçao de leitura
-int 21H     ; chama o SO para realizar a funcao
-mov BL,AL   ; coloca o conteudo de AL em BH 
-sub BL,30h  ; subtrai 30h do codigo ascii
-jmp FIM
-
-
-
-erro:
-mov AH,09
-lea dx,errado 
-int 21h
-jmp inicializa  ; volta para o inicio 
-
-
-FIM:
-mov Ah,4CH ; exit 
-int 21H
-main endp
 end main
