@@ -2,10 +2,11 @@ TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
 .model small
 
 .data       ; segmento de dados
-escolha_op  DB 10, "Escolha a operacao que deseja realizar; ", '$'
+escolha_op  DB 10, "Escolha a operacao que deseja realizar: ", '$'
 numero1  DB 10, "Entre com o primeiro numero: " ,'$'
 numero2  DB 10, "Entre com o segundo numero: "  , '$'
 resultado DB 10, "Resultado da operacao escolhida: ", '$'
+errado DB 10, "Operando nao identificado",'$'
 
 .code       ; segmento que inicia o codigo 
 main proc   ; codigo principal
@@ -23,14 +24,16 @@ mov AH,01   ; funçao de leitura
 int 21H     ; chama o SO para realizar a funcao
 
  cmp al,"+" 
- jz  verifica  ; jz: salto se igual a zero, se a entrada não for as possíveis operações dará erro 
+ JE  verifica  ; jz: salto se igual a zero, se a entrada não for as possíveis operações dará erro 
  cmp al, "-"
- jz verifica
+ JE verifica
  cmp al,"*"
- jz verifica
+ JE verifica
  cmp al, "/"
- jz verifica
- jz errado
+ JE verifica
+
+JMP ERRO
+ 
 
 
 
@@ -53,19 +56,19 @@ mov AH,01   ; funçao de leitura
 int 21H     ; chama o SO para realizar a funcao
 mov BL,AL   ; coloca o conteudo de AL em BH 
 sub BL,30h  ; subtrai 30h do codigo ascii
+jmp FIM
 
 
 
-
-errado:
+erro:
 mov AH,09
 lea dx,errado 
 int 21h
 jmp inicializa  ; volta para o inicio 
 
 
+FIM:
 mov Ah,4CH ; exit 
 int 21H
 main endp
 end main
-
