@@ -9,6 +9,7 @@ numero1  DB 10, "Entre com o primeiro numero(1 digito): " ,'$'
 numero2  DB 10, "Entre com o segundo numero(1 digito): "  , '$'
 resultado DB 10, "Resultado da operacao escolhida: ", '$'
 errado DB 10, "Operando nao identificado, aceito apenas +, -, *, //",'$'
+repetir DB 10, "Realizar outra operacao? (Digite s para sim)" , '$'
 
 .code                          ; segmento que inicia o codigo 
   main PROC                    ; codigo principal
@@ -28,24 +29,25 @@ errado DB 10, "Operando nao identificado, aceito apenas +, -, *, //",'$'
     LEA DX, fecha               ; coloca o conteudo da escolha_op no registrador dx 
     INT 21H                    ; chama o SO para realizar a funcao
 
+   inicio:
     CALL pula
 
 inicializa:
-    MOV AH, 09               ; imprime a string escolha_op
-    LEA DX, escolha_op     ; coloca o conteudo da escolha_op no registrador dx 
-    INT 21H                  ; chama o SO para realizar a funcao
+ MOV AH, 09               ; imprime a string escolha_op
+ LEA DX, escolha_op     ; coloca o conteudo da escolha_op no registrador dx 
+ INT 21H                  ; chama o SO para realizar a funcao
 
-    MOV AH, 01               ; funçao de leitura
-    INT 21H                  ; chama o SO para realizar a funcao
+ MOV AH, 01               ; funçao de leitura
+ INT 21H                  ; chama o SO para realizar a funcao
 
-   CMP AL, "+"              ;
-   JE  verifica             ; jz: salto se igual a zero, se a entrada não for as possíveis operações dará erro 
-   CMP AL, "-"
-   JE verifica
-   CMP AL, "*"
-  JE verifica
-  CMP AL, "/"
-  JE verifica
+ CMP AL, "+"              ;
+ JE  verifica             ; jz: salto se igual a zero, se a entrada não for as possíveis operações dará erro 
+ CMP AL, "-"
+ JE verifica
+ CMP AL, "*"
+ JE verifica
+ CMP AL, "/"
+ JE verifica
       
 JMP erro
  
@@ -95,10 +97,18 @@ nao_sub:
 CALL pula
 CALL imprimir
 
+MOV AH, 09
+LEA DX, repetir
+INT 21H
 
+MOV AH, 01
+INT 21H 
+CMP AL, 's'
+JE inicio
+CMP AL, 'S'
+JE inicio
 
 jmp FIM
-
 
 
 erro:
@@ -127,7 +137,8 @@ pula ENDP
 adiciona PROC
     POP SI
     MOV CL, BH        ;coloca o valor de BH em CL 
-    ADD CL, BL        ;soma entre os dois registradores 
+    ADD CL, BL        ;subtracao entre os dois registradores
+    MOV DH, 0         ;mover para DH o numero 0, para na impressao nao imprimir sinal junto ao resultado
     PUSH SI
     RET
 adiciona ENDP
@@ -136,8 +147,15 @@ subtrair PROC
     POP SI
     MOV CL, BH        ;coloca o valor de BH em CL 
     SUB CL, BL        ;soma entre os dois registradores 
+    js resultado_neg
+    mov dl,""
     PUSH SI
     RET
+    resultado_neg:
+    neg CL
+    mov dh,"-"
+    push SI
+    ret 
 subtrair ENDP
 
 
@@ -165,16 +183,25 @@ imprimir PROC
    MOV DL, '='
    INT 21H   
 
+    MOV AH,02
+   MOV dl,dh
+   int 21H
+   
+
    MOV AH, 02
    ADD CL, 30h
    MOV DL, CL
    INT 21H
-   
+
+  
 
    PUSH SI
    
    RET
 imprimir ENDP
+
+
+
 
 
 
