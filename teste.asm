@@ -88,7 +88,7 @@ repetir DB 10, "Realizar outra operacao? (Digite s para sim)" , '$'
      CMP CH,"*"                ; comparar o sinal '*' com o registardor CH, que contem a operacao a ser realizada 
      JNZ nao_mult              ; pular para a proxima comparacao (->nao_mult(89)) caso nao for o sinal de '*'
      print:
-     CALL multiplicar           ; chama o procedimento de multiplicacao -> multiplica()
+     CALL multiplicar          ; chama o procedimento de multiplicacao -> multiplica()
 
    nao_mult: 
      ;CMP CH,"/"                ; comparae o sinal '/' com o registardor CH, que contem a operacao a ser realizada 
@@ -98,21 +98,21 @@ repetir DB 10, "Realizar outra operacao? (Digite s para sim)" , '$'
    ;nao_div: 
 
      CALL pula                  ; chama procedimento 'pula'(), para pular a linha      
-     CALL imprimir1            ; chama procedimento 'imprimir1'(), para impressao da conta-> res. posit. 1 alg.
+     CALL imprimir1             ; chama procedimento 'imprimir1'(), para impressao da conta-> res. posit. 1 alg.
 
 
-     MOV AH, 09      ; imprime a string 
-    LEA DX, repetir
-    INT 21H
+   MOV AH, 09                   ; imprime a string 
+   LEA DX, repetir
+   INT 21H
 
-   MOV AH, 01      ; leitura 
-  INT 21H 
-  CMP AL, 's'     ; compara o registrador AL com o s minusculo 
-  JE inicio
- CMP AL, 'S'     ; compara o registrador AL com o s maiusculo 
-  JE inicio       ; jump para o inicio do programa, caso a pessoa escreva 's' para realizar outra operacao 
+   MOV AH, 01                   ; leitura 
+   INT 21H 
+   CMP AL, 's'                  ; compara o registrador AL com o s minusculo 
+   JE inicio
+   CMP AL, 'S'                  ; compara o registrador AL com o s maiusculo 
+   JE inicio                    ; jump para o inicio do programa, caso a pessoa escreva 's' para realizar outra operacao 
 
-     JMP fim                    ; pula para o final do programa
+   JMP fim                      ; pula para o final do programa
     
 
 
@@ -174,24 +174,26 @@ subtrair ENDP
 
 multiplicar PROC 
     POP SI
-    PUSH BX
+    PUSH BX                    ; salva os conteudos de BX (numeros inseridos)
 
- XOR CL,CL
- MOV DL,5
+    XOR CL, CL                 ; operador XOR entre CX e CX, zerando o registrador CX, para guardar resultado (XOR entre numeros iguais = 0)
 
-  multiplica:
-    SHR BH, 1           ;Rotaciona para passar o valor mais à direita pro Carry
-    JNC pula1          ;Se o Carry for 0, o valor de BH não entra na soma
- ADD CL, BL          ; Soma o valor de BH, se o carry for 1
 
-   pula1:
-    SHL BL, 1 
-    ADD BH, 0
-    JNZ multiplica
-    final2:
-    POP BX
-    PUSH SI
-    RET
+    multiplica:
+      SHR BH, 1                ; desloca BH para a direita 1 bit (valor mais a direita vai para flag de Carry-CF)
+      JNC pula1                ; pular para 'pula1' caso nao haja Carry (CF = 0) 
+      ADD CL, BL               ; somar o valor de BL no resultado (CL), se houver Carry (CF = 1) -> CL (CL + BL)
+
+    
+      pula1:
+        SHL BL, 1              ; desloca BH para a esquerda 1 bit (valor mais a esquerda vai para flag de Carry-CF)
+        ADD BH, 0              ; somar 0 ao valor de BH, se houver Carry (CF = 1) -> BH (BH + 0) (operacao feita para gerar flag ZF)
+        JNZ multiplica         ; pular para a multiplica caso BH nao for 0
+
+      POP BX                   ; restaura os conteudos de BX (numeros inseridos)
+
+      PUSH SI
+      RET
     
 multiplicar ENDP
 
