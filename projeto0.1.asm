@@ -5,12 +5,12 @@ TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
 abertura DB 10, "----------------------------", '$'
 introd DB 10, "  CALCULADORA EM ASSEMBLY", '$'
 fecha DB 10, "----------------------------", '$'
-escolha DB 10, "Escolha a operacao que deseja realizar: ", '$'
-numero1  DB 10, "Entre com o primeiro numero(1 digito): " ,'$'
-numero2  DB 10, "Entre com o segundo numero(1 digito): "  , '$'
-resultado DB 10, "Resultado da operacao escolhida: ", '$'
-errado DB 10, "Operando nao identificado, aceito apenas +, -, *, //",'$'
-repetir DB 10, "Realizar outra operacao? (Digite s para sim)" , '$'
+escolha DB 10, " Escolha a operacao que deseja realizar: ", '$'
+numero1  DB 10, " Entre com o primeiro numero(1 digito): " ,'$'
+numero2  DB 10, " Entre com o segundo numero(1 digito): "  , '$'
+resultado DB 10, " Resultado da operacao escolhida: ", '$'
+errado DB 10, " Operando nao identificado, aceito apenas +, -, *, //",'$'
+repetir DB 10, " Realizar outra operacao? (Digite s para sim)" , '$'
 
 .code                          ; segmento que inicia o codigo 
   main PROC                    ; codigo principal
@@ -82,12 +82,11 @@ repetir DB 10, "Realizar outra operacao? (Digite s para sim)" , '$'
      CALL subtrair             ; chama o procedimento de subtracao -> subtrair(133)
 
    nao_sub: 
+     CMP CH,"*"                ; comparar o sinal '*' com o registardor CH, que contem a operacao a ser realizada 
+     JNZ nao_mult              ; pular para a proxima comparacao (->nao_mult(89)) caso nao for o sinal de '*'
+     CALL multiplicar          ; chama o procedimento de multiplicacao -> multiplica()
 
-     ;CMP CH,"*"                ; comparar o sinal '*' com o registardor CH, que contem a operacao a ser realizada 
-     ;JNZ nao_mult              ; pular para a proxima comparacao (->nao_mult(89)) caso nao for o sinal de '*'
-     ;CALL multiplica           ; chama o procedimento de multiplicacao -> multiplica()
-
-   ;nao_mult: 
+   nao_mult: 
      ;CMP CH,"/"                ; comparae o sinal '/' com o registardor CH, que contem a operacao a ser realizada 
      ;JNZ nao_div               ; pular para a proxima comparacao (->nao_div(94)) caso nao for o sinal de '/'
      ;CALL divisao              ; chama o procedimento de divisao -> divisao()
@@ -130,7 +129,7 @@ adicionar PROC
     POP SI
 
     MOV CL, BH                 ; colocar o valor de BH em CL 
-    ADD CL, BL                 ; somar entre os dois registradores, resultado em CL
+    ADD CL, BL                 ; somar entre os dois registradores, resultado em CL (CL + BL)
     MOV DH, " "                ; mover para DH o <espaço>, para na impressao nao imprimir sinal junto ao resultado(positivo)
 
     PUSH SI
@@ -141,23 +140,51 @@ subtrair PROC
     POP SI
 
     MOV CL, BH                 ; colocar o valor de BH em CL 
-    SUB CL, BL                 ; subtrair entre os dois registradores, resultado em CL
-    JS resultado_neg           ; pula para 'resultado_neg', se o flag de sinal for 1 (negativo)
+    SUB CL, BL                 ; subtrair entre os dois registradores, resultado em CL (CL - BL)
+    JS resultado_neg           ; pula para 'resultado_neg', se o flag de sinal = 1 (negativo)
 
     MOV DH, " "                ; mover para DH o <espaço>, para na impressao nao imprimir sinal junto ao resultado(positivo)
-    JMP final                  ; pula para o 'final' do procedimento
+    JMP final1                 ; pula para o 'final1' do procedimento
 
     resultado_neg:          
-    NEG CL
-    MOV DH, "-"                ; mover para DH o <espaço>, para na impressao nao imprimir sinal junto ao resultado(positivo)
+      NEG CL
+      MOV DH, "-"              ; mover para DH o <espaço>, para na impressao nao imprimir sinal junto ao resultado(positivo)
 
-    final:
-    PUSH SI
-    RET
+    final1:
+      PUSH SI
+      RET
 subtrair ENDP
+
+multiplicar PROC
+    POP SI
+    PUSH BX                    ; salva os conteudos de BX (numeros inseridos)
+
+    XOR CL, CL                 ; operador XOR entre CX e CX, zerando o registrador CX, para guardar resultado (XOR entre numeros iguais = 0)
+
+
+    multiplica:
+      SHR BH, 1                ; desloca BH para a direita 1 bit (valor mais a direita vai para flag de Carry-CF)
+      JNC pula1                ; pular para 'pula1' caso nao haja Carry (CF = 0) 
+      ADD CL, BL               ; somar o valor de BL no resultado (CL), se houver Carry (CF = 1) -> CL (CL + BL)
+
+    
+      pula1:
+        SHL BL, 1              ; desloca BH para a esquerda 1 bit (valor mais a esquerda vai para flag de Carry-CF)
+        ADD BH, 0              ; somar 0 ao valor de BH, se houver Carry (CF = 1) -> BH (BH + 0) (operacao feita para gerar flag ZF)
+        JNZ multiplica         ; pular para a multiplica caso BH nao for 0
+
+      POP BX                   ; restaura os conteudos de BX (numeros inseridos)
+
+      PUSH SI
+      RET
+multiplicar ENDP
 
 imprimir1 PROC
    POP SI
+
+   MOV AH, 02                  ; funcao para impressao de caractere
+   MOV DL, " "                 ; mover para DL o número a ser impresso, <espaco> (para padronizacao na impressao)
+   INT 21H                     ; executa funcao, imprimindo o conteudo de DL
 
    MOV AH, 02                  ; funcao para impressao de caractere
    ADD BH, 30h                 ; somar 30 no numero guardado em BH para obter o codigo ascii do numero
@@ -181,22 +208,7 @@ imprimir1 PROC
    MOV DL, DH                  ; mover para DL o simbolo '-' ou ' ', guardado em DH
    INT 21H                     ; executa funcao, imprimindo o conteudo de DL
 
-   ;CALL imprimir2              ; chama procedimento 'imprimir2', para imprimir numero com 2 numeros
-
-  MOV AX, CX                  ; mover para AX o conteudo de CL(resultado da conta)
-  MOV BL, 10                  ; mover para BL o numero 10
-  DIV BL                      ; dividir AX(registrador utilizado pela funcao), por 10(BL). Guarda o resultado em AL e o resto em AH
-  MOV BX, AX                  ; mover AX(resultado da conta) para BX, para evitar perda dos valores armazenados
-
-  MOV DL, BL                  ; mover para DL o resultado da divisao (BL: primeiro numero a ser impresso)
-  OR DL, 30h                  ; operador OR entre o conteudo de DL e o numero hexadecimal 30h, obtendo o valor decimal em DL
-  MOV AH, 02                  ; funcao para impressao de caractere
-  INT 21H                     ; executa funcao, imprimindo o conteudo de DL
-
-  MOV DL, BH                  ; mover para DL o resto da divisao (BH: segundo numero a ser impresso) 
-  OR DL, 30h                  ; operador OR entre o conteudo de DL e o numero hexadecimal 30h, obtendo o valor decimal em DL
-  MOV AH, 02                  ; funcao para impressao de caractere
-  INT 21H                     ; executa funcao, imprimindo o conteudo de DL
+   CALL imprimir2              ; chama procedimento 'imprimir2', para imprimir o resultado: valor com 2 numeros
 
    PUSH SI
    RET
@@ -204,19 +216,19 @@ imprimir1 ENDP
 
 imprimir2 PROC
   POP SI
-  POP CX                      ; recupera os dados de CX
 
+  XOR CH, CH                  ; operador XOR entre CH e CH, zerando o registrador CH, para guardar resultado (XOR entre numeros iguais = 0)
   MOV AX, CX                  ; mover para AX o conteudo de CL(resultado da conta)
   MOV BL, 10                  ; mover para BL o numero 10
   DIV BL                      ; dividir AX(registrador utilizado pela funcao), por 10(BL). Guarda o resultado em AL e o resto em AH
-  MOV BX, AX                  ; mover AX(resultado da conta) para BX, para evitar perda dos valores armazenados
+  MOV CX, AX                  ; mover AX(resultado da conta) para CX, para evitar perda dos valores armazenados
 
-  MOV DL, BL                  ; mover para DL o resultado da divisao (BL: primeiro numero a ser impresso)
+  MOV DL, CL                  ; mover para DL o resultado da divisao (CL: primeiro numero a ser impresso)
   OR DL, 30h                  ; operador OR entre o conteudo de DL e o numero hexadecimal 30h, obtendo o valor decimal em DL
   MOV AH, 02                  ; funcao para impressao de caractere
   INT 21H                     ; executa funcao, imprimindo o conteudo de DL
 
-  MOV DL, BH                  ; mover para DL o resto da divisao (BH: segundo numero a ser impresso) 
+  MOV DL, CH                  ; mover para DL o resto da divisao (CH: segundo numero a ser impresso) 
   OR DL, 30h                  ; operador OR entre o conteudo de DL e o numero hexadecimal 30h, obtendo o valor decimal em DL
   MOV AH, 02                  ; funcao para impressao de caractere
   INT 21H                     ; executa funcao, imprimindo o conteudo de DL
