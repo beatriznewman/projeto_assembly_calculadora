@@ -1,7 +1,5 @@
 TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
 .model small
-.stack 100h
-
 .data                          ; segmento de dados
 
   abertura DB 10, "----------------------------", '$'
@@ -77,9 +75,15 @@ TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
       INT 21H                  ; executa funcao, guardando o caractere inserido em AL                 
       MOV BL, AL               ; colocar o conteudo de AL(caractere inserido) em BH 
       SUB BL, 30h              ; subtrair 30h de BL(codigo ascii do numero inserido)
+      
+      JMP interm2              ; pular para 'interm2'
+  
+    interm:                    ; funcao intermediaria para condicionar volta para inicio do programa
+      JMP inicio               ; pular para 'inicio'
 
+    interm2:
    ; verificacao da operacao
-
+    
       CMP CH,"+"               ; compara o sinal '+' com o registardor CH, que contem a operacao a ser realizada 
       JNZ nao_adic             ; pular para a proxima comparacao (->nao_adic) caso nao for o sinal de '+'
       CALL adicionar           ; chama o procedimento de soma -> adicionar
@@ -98,14 +102,16 @@ TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
       CMP CH, "/"
       JNZ impr
       CALL dividir             ; chama oprocedimento de divisao -> 'dividir'
-  
+      CMP DL, 'E'              ; compara o conteudo DL com o codigo ascii da letra "E", para verificar se houve erro na divisao
+      JE repete                ; se for igual, pular para 'repete'
+   
     impr:
       CALL pula                ; chama procedimento 'pula', para pular a linha      
       CALL imprimir            ; chama procedimento 'imprimir', para impressao da conta
       CALL pula                ; chama procedimento 'pula', para pular a linha      
 
    ;Final da execucao da conta, repetir?
-
+    repete:
       MOV AH, 09               ; funcao para impressao de string 
       LEA DX, repetir          ; colocar o endereco da mensagem 'erro'no registrador DX
       INT 21H                  ; executa funcao, imprimindo o conteudo do endereco DX         
@@ -114,9 +120,9 @@ TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
       INT 21H                  ; executa funcao, imprimindo o conteudo do endereco DX         
 
       CMP AL, 's'              ; compara o registrador AL com o s minusculo 
-      JE inicio                ; jump para o 'inicio', caso a pessoa escreva 's' para realizar outra operacao
+      JE interm                ; jump para o 'interm', caso a pessoa escreva 's' para realizar outra operacao
       CMP AL, 'S'              ; compara o registrador AL com o S maiusculo 
-      JE inicio                ; jump para o 'inicio', caso a pessoa escreva 'S' para realizar outra operacao 
+      JE interm                ; jump para o 'interm', caso a pessoa escreva 'S' para realizar outra operacao 
 
       JMP fim                  ; pula para o final do programa
 
@@ -124,7 +130,7 @@ TITLE Beatriz Newman, RA: 22002150 / Luana Baptista, RA: 22006563
       MOV AH, 09               ; funcao para impressao de string 
       LEA DX, errado           ; colocar o endereco da mensagem 'erro'no registrador DX
       INT 21h                  ; executa funcao, imprimindo o conteudo do endereco DX 
-      JMP inicio               ; pular para o 'inicio'
+      JMP interm               ; pular para o 'interm'
 
     fim:
       MOV AH,4CH               ; exit 
@@ -142,7 +148,7 @@ adicionar ENDP
 
 subtrair PROC
 
-  MOV CL, BH                   ; colocar o valor de BH em CL 
+  MOV CL, BH                   ; colocar o valor de BH em CL (resultado)
   SUB CL, BL                   ; subtrair entre os dois registradores, resultado em CL (CL - BL)
   JS resultado_neg             ; pula para 'resultado_neg', se o flag de sinal = 1 (negativo)
 
@@ -150,7 +156,7 @@ subtrair PROC
   JMP final1                   ; pula para o 'final1' do procedimento
 
   resultado_neg:          
-    NEG CL
+    NEG CL                     ; faz complemento de 2 de CL (resultado)
     MOV DH, "-"                ; mover para DH o <espaço>, para na impressao nao imprimir sinal junto ao resultado(positivo)
 
   final1:
@@ -160,7 +166,7 @@ subtrair ENDP
 multiplicar PROC
   PUSH BX                      ; salva os conteudos de BX (numeros inseridos)
 
-  XOR CL, CL                   ; operador XOR entre CX e CX, zerando o registrador CX, para guardar resultado (XOR entre numeros iguais = 0)
+  XOR CL, CL                   ; operador XOR entre CL e CL, zerando o registrador CL, para guardar resultado (XOR entre numeros iguais = 0)
 
   multiplica:
     SHR BH, 1                  ; desloca BH para a direita 1 bit (valor mais a direita vai para flag de Carry-CF)
@@ -169,8 +175,8 @@ multiplicar PROC
 
     pula1:
       SHL BL, 1                ; desloca BH para a esquerda 1 bit (valor mais a esquerda vai para flag de Carry-CF)
-      ADD BH, 0                ; somar 0 ao valor de BH, se houver Carry (CF = 1) -> BH (BH + 0) (operacao feita para gerar flag ZF)
-      JNZ multiplica           ; pula para a multiplica caso BH nao for 0
+      ADD BH, 0                ; somar 0 ao valor de BH, para geraracao de flag de zero (ZF) -> BH = BH + 0 
+      JNZ multiplica           ; pula para a 'multiplica', caso conteudo de BH nao for 0 (ZF != 0)
 
   POP BX                       ; restaura os conteudos de BX (numeros inseridos)
   RET
@@ -180,53 +186,39 @@ dividir PROC
   PUSH BX                      ; salva os conteudos de BX (numeros inseridos)
 
   CMP BL, BH                   ; compara dividendo(BH) com o divisor(BL)
-  JG pula2                     ; pular para 'pula2', se BL > BH (divisor maior que dividendo)
+  JG pula2                     ; pular para 'pula2', se BL > BH (divisor maior que dividendo) => divisao nao pode ser realizada
 
   CMP BL, 0                    ; compara BL (divisor) com 0 
   JE pula3                     ; pular para 'pula3', se BL (divisor) for 0
 
   XOR CX, CX                   ; operador XOR entre CX e CX, zerando o registrador CX, para armazenar o resultado (XOR entre numeros iguais = 0)
-  MOV CH, BL                   ; move BL (divisor) para CH, para preservar BL para posterior comparacao
-
-  SHL CH, 4                    ; desloca o valor de CH (divisor) 4 casas para a esquerda 
+  MOV CH, BH                   ; move BH (dividendo) para CH, para preservar dividendo em CH, acumulando o resto da conta eh BH
+                               ; dividendo em CH / divisor em BL / quociente em CL / resto em BH
 
   divide:
-    CMP CH, BH                 ; compara o conteudo CH (divisor) com o do BH (dividendo) 
-    JBE pula4                  ; pular para 'pula4', se o valor de BL for menor ou igual ao de CH (dividendo) 
+    CMP BH, BL                 ; compara o conteudo BH (dividendo) com o do BL (divisor) 
+    JB final2                  ; pular para 'final2', se o valor de CH (dividendo) for menor que o de BL (divisor) => nao ocorre SUB / resto da conta em CH
 
-    SHR CH, 1                  ; desloca CH (divisor) para a direita 1 bit (valor mais a direita vai para flag de Carry-CF)
-    JMP divide                 ; pular para 'divide'
-
-    pula4: 
-      SUB BH, CH               ; subtrai o conteudo de CH (divisor) do de BH (dividendo) => BH = BH - CH
-      CMP BH, 0                ; compara o conteudo de BH (guarda o resto) com 0, para verificar se existe mais numeros para dividir
-      JL pula5                 ; pular para 'pula5', se o valor de BH (dividendo) for menor do que 0
-
-      SHL CL, 1                ; desloca CL (quociente) para a esquerda 1 bit (valor mais a esquerda vai para flag de Carry-CF)
-      INC CL                   ; incrementa CL (quociente), para mostrar que foi possivel fazer a subtracao da divisao (resto maior ou igual a zero)
-      JMP pula6                ; pular para 'pula6'
-
-    pula5:
-      ADD BH,CH                ; adiciona o conteudo de BH (resto) com o de CH (divisor), para restaurar seu valor como RESTO => BH = BH + CH
-      SHL CL,1                 ; desloca CL (quociente) para a esquerda 1 bit (valor mais a esquerda vai para flag de Carry-CF)
-
-    pula6: 
-      SHR CH,1                 ; desloca CH (divisor) para a direita 1 bit (valor mais a direita vai para flag de Carry-CF)
-      CMP CH, BL               ; compara se CH (divisor) segue valendo o mesmo de quando foi digitado pelo usuário (BL)
-      JAE pula4                ; voltar para 'divide' caso CH (divisor-final) for maior ou igual ao valor de BL (divisor-inicio)   
-     
-      JMP final2               ; pular para 'final2'
-
+    SUB BH, BL                 ; subtrai o conteudo de BL (divisor) do de BH (dividendo), guardando o resto em BH => BH = BH - BL
+    INC CL                     ; incrementa CL (quociente), para mostrar que foi possivel fazer a subtracao da divisao 
+    
+    JMP divide                 ; volta parta 'divide' para fazer divisao do resto (novo divisor), ate que dividendo (CH) seja menor que divisor (BL)
+    
   pula2:
+    CALL pula
     MOV AH, 09                 ; funcao para impressao de string 
     LEA DX, dividendo          ; colocar o endereco da mensagem 'dividendo' no registrador DX
     INT 21H                    ; executa funcao, imprimindo o conteudo do endereco DX  
-    JMP  final2                ; pular para 'final2'
+    MOV DL, 'E'                ; move codigo ascii da letra "E" para o registrador DL, servindo como flag posteriormente
+    JMP  final3                ; pular para 'final3'
 
   pula3:
+    CALL pula
     MOV AH, 09                 ; funcao para impressao de string 
     LEA DX, divisor            ; colocar o endereco da mensagem 'divisor' no registrador DX
     INT 21H                    ; executa funcao, imprimindo o conteudo do endereco DX  
+    MOV DL, 'E'                ; move codigo ascii da letra "E" para o registrador DL, servindo como flag posteriormente
+    JMP  final3                ; pular para 'final3'
 
   final2:
     MOV DH, ' '                ; mover para DH o <espaço>, para na impressao nao imprimir sinal junto ao resultado(positivo)
@@ -234,6 +226,7 @@ dividir PROC
     XOR BL, BL                 ; operador XOR entre BL e BL, zerando o registrador BL, para deixar registrador BX apenas com BH(resto)
     MOV SI, BX                 ; mover para a variavel "resto" o conteudo de BH (guarda o resto)
 
+  final3:
     POP BX                     ; restaura os conteudos de BX (numeros inseridos)
     RET
 dividir ENDP
@@ -278,7 +271,7 @@ imprimir PROC
   MOV DH, CH                   ; move CH (operacao da conta: +, -, *, /) para o registrador DH, para nao perder a informacao
   XOR CH, CH                   ; operador XOR entre CH e CH, zerando o registrador CH, para guardar resultado (XOR entre numeros iguais = 0)
   
-  MOV AX, CX                   ; mover para AX o conteudo de CL(resultado da conta)
+  MOV AX, CX                   ; mover para AX o conteudo de CL(resultado da conta / CH esta zerado)
   MOV BL, 10                   ; mover para BL o numero 10
   
   DIV BL                       ; dividir AX(registrador utilizado pela funcao), por 10(BL). Guarda o resultado em AL e o resto em AH
@@ -295,9 +288,9 @@ imprimir PROC
   INT 21H                      ; executa funcao, imprimindo o conteudo de DL
 
   CMP DH, "/"                  ; comparar conteúdo de DH(operando da conta a ser realizada) com '/'
-  JNE final3                   ; pula para 'final3' caso DH nao seja igual a '/' => nao possui resto
+  JNE final4                   ; pula para 'final4' caso DH nao seja igual a '/' => nao possui resto
 
-  CALL pula
+  CALL pula                    ; chama procedimento 'pula', para pular a linha 
 
   MOV AH, 09                   ; funcao para impressao de string 
   LEA DX, rest                 ; coloca o endereco da mensagem 'rest' no registrador DX
@@ -309,7 +302,9 @@ imprimir PROC
   OR DL, 30h                   ; operador OR entre o conteudo de DL e o numero hexadecimal 30h, obtendo o valor decimal em DL
   INT 21H                      ; executa funcao, imprimindo o conteudo de DL
 
-  final3:
+  CALL pula                    ; chama procedimento 'pula', para pular a linha 
+
+  final4:
     RET
 imprimir ENDP
 
